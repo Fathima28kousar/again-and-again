@@ -1,4 +1,5 @@
 from django.db import models
+import uuid
 
 class Customer(models.Model):
     firstName = models.CharField(max_length=100)
@@ -27,6 +28,7 @@ class Transaction(models.Model):
         return self.name
         
 
+    
 
 # class Product(models.Model):
 #     name = models.CharField(max_length=100)

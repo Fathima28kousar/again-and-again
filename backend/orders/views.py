@@ -14,6 +14,13 @@ from rest_framework.decorators import api_view
 
 
 
+# def get_transactions(request):
+#     transactions = Transaction.objects.all()
+#     data = [{'name': transaction.name, 'razorpay_payment_id': transaction.razorpay_payment_id} for transaction in transactions]
+#     return JsonResponse(data, safe=False)
+
+
+
 @api_view(['POST'])
 def start_payment(request):
     # request.data is coming from frontend

@@ -19,13 +19,14 @@ from django.urls import path,include
 from orders.views import *
 from rest_framework import routers
 
-route = routers.DefaultRouter()
-route.register("",CustomerView,basename='CustomerView')
+router = routers.DefaultRouter()
+router.register("", CustomerView, basename='CustomerView')
+
+
 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include(route.urls)),
-    path('razorpay/',include('orders.urls'))
-    
+    path('api/', include(router.urls)),
+    path('razorpay/',include('orders.urls')),
 ]
