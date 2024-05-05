@@ -23,8 +23,6 @@ router = routers.DefaultRouter()
 router.register("", CustomerView, basename='CustomerView')
 
 
-
-
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),

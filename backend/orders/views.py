@@ -14,12 +14,6 @@ from rest_framework.decorators import api_view
 
 
 
-# def get_transactions(request):
-#     transactions = Transaction.objects.all()
-#     data = [{'name': transaction.name, 'razorpay_payment_id': transaction.razorpay_payment_id} for transaction in transactions]
-#     return JsonResponse(data, safe=False)
-
-
 
 @api_view(['POST'])
 def start_payment(request):
@@ -28,6 +22,7 @@ def start_payment(request):
     name = request.data['name']
 
     client = razorpay.Client(auth=('rzp_test_wucadtaz2NQLqm', 'Un2BvQcbNWU4MpjvhlF28G9W'))
+    
 
     payment = client.order.create({
         'amount': int(float(amount)) * 100,
@@ -35,20 +30,22 @@ def start_payment(request):
         'payment_capture': '1'})
     
 
-    razorpay_payment_id = payment['id']
+    order_id = payment['id']
     order_status = payment['status']
     if order_status == 'created':
         order = Transaction.objects.create(
             name=name,
             amount=amount,
-            razorpay_payment_id=razorpay_payment_id)
-    
+            order_id = order_id)
+        print(order)
         serializer = TransactionSerializer(order)
 
     data = {
         "payment": payment,
         "order": serializer.data
     }
+    print(data)
+    
     return Response(data)
 
 
@@ -56,7 +53,6 @@ def start_payment(request):
 def handle_payment_success(request):
     # request.data is coming from frontend
     res = json.loads(request.data["response"])
-    print(res)
 
     ord_id = ""
     raz_pay_id = ""
@@ -76,28 +72,15 @@ def handle_payment_success(request):
             raz_signature = res[key]
             
 
-    transaction = Transaction.objects.create(
-    order_id=ord_id,
-    razorpay_payment_id=raz_pay_id,
-    paid=True  # Assuming this payment means it's paid
-    )
-
+    order = Transaction.objects.filter(razorpay_payment_id=ord_id).first()
 
     data = {
         'razorpay_order_id': ord_id,
         'razorpay_payment_id': raz_pay_id,
         'razorpay_signature': raz_signature
     }
-    print(data)
 
-    order = Transaction.objects.filter(razorpay_payment_id=raz_pay_id).first()
-    if order:
-        order.paid = True
-        order.save()
-    else:
-        return Response({'error': 'Transaction not found'}, status=status.HTTP_404_NOT_FOUND)
-
-
+    
     client = razorpay.Client(auth=('rzp_test_wucadtaz2NQLqm', 'Un2BvQcbNWU4MpjvhlF28G9W'))
     check = client.utility.verify_payment_signature(data)
 
@@ -106,22 +89,19 @@ def handle_payment_success(request):
         print("Redirect to error url or error page")
         return Response({'error': 'Something went wrong'})
     
+    if order:
+        order.paid = True
+        order.save()
+    else:
+        return Response({'error': 'Transaction not found'}, status=status.HTTP_404_NOT_FOUND)
+    
    
 
     res_data = {
     'message': 'payment successfully received!'
     }
+    print(res_data)
     return Response(res_data)
-
-    
-
-
-
-
-
-
-
-
 
 
 class CustomerView(viewsets.ModelViewSet):
@@ -131,15 +111,9 @@ class CustomerView(viewsets.ModelViewSet):
 
 def validate_checkout(request):
     if request.method == 'POST':
-        # Parse JSON data from request body
-        # data = json.loads(request.body)
-
         firstName = request.POST.get('firstName')
         lastName = request.POST.get('lastName')
         emails = request.POST.get('emails')
-        # email = request.POST.get('email')
-        # country = request.POST.get('country')
-        # state = request.POST.get('state')
         pincode = request.POST.get('pincode')
         apartment = request.POST.get('apartment')
         address = request.POST.get('address')
@@ -152,12 +126,6 @@ def validate_checkout(request):
             errors['lastName'] = 'Last name is required'
         if not emails:
              errors['emails'] = 'Last name is required'
-        # if not email:
-        #     errors['email'] = 'Email is required'
-        # if not country:
-        #     errors['country'] = 'Country is required'
-        # if not state:
-            # errors['state'] = 'State is required'
         if not pincode:
             errors['pincode'] = 'Pincode is required'
         if not apartment:
@@ -170,18 +138,16 @@ def validate_checkout(request):
         if errors:
             return JsonResponse({'errors': errors}, status=400)  # Return validation errors
         else:
-            Customer.objects.create(
+            customer = Customer.objects.create(
                 firstName=firstName,
                 lastName=lastName,
                 emails=emails,
-                # country=country,
-                # state=state,
                 pincode=pincode,
                 apartment=apartment,
                 address=address,
                 phone=phone
             )
-            return JsonResponse({'success': True})   # Form data is valid
+            return JsonResponse({'success': True,'id': customer.id})   # Form data is valid
 
     else:
         return HttpResponse('Something went wrong')
